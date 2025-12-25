@@ -40,6 +40,7 @@ backend/storage/voice_models/whisper/models--*/
 backend/storage/voice_models/whisper/.locks/
 backend/storage/voice_models/piper/*.onnx
 backend/storage/voice_models/piper/*.onnx.json
+backend/storage/voice_models/argos/packages/
 backend/storage/temp_audio/
 
 # Logs

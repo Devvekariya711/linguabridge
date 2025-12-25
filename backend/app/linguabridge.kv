@@ -1,0 +1,153 @@
+#:kivy 2.0
+
+# =============================================================================
+# LinguaBridge Kivy Layout
+# =============================================================================
+
+<ChatBubble>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: dp(60)
+    padding: dp(10)
+    
+    # Spacer for alignment
+    Widget:
+        size_hint_x: 0.3 if root.is_user else None
+    
+    # Bubble container
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_x: 0.7
+        
+        canvas.before:
+            Color:
+                rgba: (0.2, 0.6, 0.9, 1) if root.is_user else (0.3, 0.3, 0.35, 1)
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [dp(15)]
+        
+        Label:
+            text: root.text
+            color: 1, 1, 1, 1
+            font_size: sp(14)
+            text_size: self.width - dp(20), None
+            halign: 'left'
+            valign: 'middle'
+            padding: dp(10), dp(10)
+        
+        Label:
+            text: root.timestamp
+            color: 0.7, 0.7, 0.7, 1
+            font_size: sp(10)
+            halign: 'right'
+            size_hint_y: None
+            height: dp(15)
+    
+    # Spacer for alignment
+    Widget:
+        size_hint_x: None if root.is_user else 0.3
+
+
+<MainLayout>:
+    orientation: 'vertical'
+    padding: dp(10)
+    spacing: dp(10)
+    
+    canvas.before:
+        Color:
+            rgba: 0.12, 0.12, 0.15, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    
+    # Header
+    BoxLayout:
+        size_hint_y: None
+        height: dp(50)
+        spacing: dp(10)
+        
+        Label:
+            text: '🌉 LinguaBridge'
+            font_size: sp(20)
+            bold: True
+            color: 1, 1, 1, 1
+            halign: 'left'
+            text_size: self.size
+            valign: 'center'
+        
+        Label:
+            text: root.status_text
+            font_size: sp(12)
+            color: (0.4, 0.9, 0.4, 1) if root.is_connected else (0.9, 0.4, 0.4, 1)
+            halign: 'right'
+            text_size: self.size
+            valign: 'center'
+            size_hint_x: 0.3
+    
+    # Chat area
+    ScrollView:
+        id: chat_scroll
+        do_scroll_x: False
+        bar_width: dp(4)
+        bar_color: 0.5, 0.5, 0.5, 0.8
+        
+        BoxLayout:
+            id: chat_container
+            orientation: 'vertical'
+            size_hint_y: None
+            height: self.minimum_height
+            spacing: dp(10)
+            padding: dp(5)
+    
+    # Language selector
+    BoxLayout:
+        size_hint_y: None
+        height: dp(40)
+        spacing: dp(10)
+        
+        Button:
+            text: 'EN → HI'
+            on_press: root.source_lang = 'en'; root.target_lang = 'hi'
+            background_color: (0.3, 0.6, 0.9, 1) if root.target_lang == 'hi' else (0.3, 0.3, 0.35, 1)
+            background_normal: ''
+        
+        Button:
+            text: 'EN → JA'
+            on_press: root.source_lang = 'en'; root.target_lang = 'ja'
+            background_color: (0.3, 0.6, 0.9, 1) if root.target_lang == 'ja' else (0.3, 0.3, 0.35, 1)
+            background_normal: ''
+        
+        Button:
+            text: 'HI → EN'
+            on_press: root.source_lang = 'hi'; root.target_lang = 'en'
+            background_color: (0.3, 0.6, 0.9, 1) if root.source_lang == 'hi' else (0.3, 0.3, 0.35, 1)
+            background_normal: ''
+    
+    # Mic button
+    BoxLayout:
+        size_hint_y: None
+        height: dp(80)
+        
+        Widget:
+            size_hint_x: 0.3
+        
+        Button:
+            id: mic_button
+            text: '🛑 STOP' if root.is_recording else '🎤 RECORD'
+            font_size: sp(18)
+            on_press: root.toggle_recording()
+            background_color: (0.9, 0.3, 0.3, 1) if root.is_recording else (0.3, 0.8, 0.3, 1)
+            background_normal: ''
+            size_hint_x: 0.4
+            
+            canvas.before:
+                Color:
+                    rgba: self.background_color
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(25)]
+        
+        Widget:
+            size_hint_x: 0.3
