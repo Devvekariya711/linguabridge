@@ -1,0 +1,14 @@
+# Argos Translate NMT Models
+# ==========================
+# Models auto-download via argostranslate package manager
+# 
+# Language pairs configured:
+# - en → ja (English → Japanese)
+# - ja → en (Japanese → English)
+# - en → hi (English → Hindi)  
+# - hi → en (Hindi → English)
+#
+# Size: ~40-60 MB per language pair
+#
+# Note: Argos stores models in its own cache directory.
+# This folder is for organizational reference.

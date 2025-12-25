@@ -1,0 +1,16 @@
+# Whisper STT Models (Faster-Whisper)
+# ====================================
+# Models auto-download on first use via faster-whisper
+# 
+# Expected structure after download:
+# backend/storage/voice_models/whisper/
+# └── models--Systran--faster-whisper-base/
+#     └── snapshots/
+#         └── <hash>/
+#             ├── config.json
+#             ├── model.bin
+#             ├── tokenizer.json
+#             └── vocabulary.txt
+#
+# Model: base (~150 MB)
+# Optimized for: CPU with int8 quantization

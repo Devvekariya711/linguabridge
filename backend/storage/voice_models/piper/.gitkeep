@@ -1,0 +1,14 @@
+# Piper TTS Voice Models
+# =======================
+# ONNX-based neural speech synthesis
+#
+# Required files per voice:
+# - <voice_name>.onnx      (model weights, ~60-100 MB)
+# - <voice_name>.onnx.json (voice configuration)
+#
+# Default voice: en_US-lessac-medium
+#
+# Download manually from:
+# https://huggingface.co/rhasspy/piper-voices/tree/main
+#
+# Or run: python backend/download_models.py --tts

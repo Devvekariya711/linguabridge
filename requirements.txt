@@ -1,0 +1,51 @@
+# =========================
+# Core Backend
+# =========================
+fastapi
+uvicorn[standard]
+python-socketio
+aiofiles
+python-dotenv
+
+# =========================
+# Audio Processing
+# =========================
+numpy
+sounddevice
+pyaudio
+scipy
+
+# =========================
+# Speech-to-Text (STT)
+# =========================
+faster-whisper
+# Note: ctranslate2 is auto-installed as dependency of faster-whisper
+
+# =========================
+# Translation (NMT)
+# =========================
+argostranslate
+
+# =========================
+# Text-to-Speech (TTS)
+# =========================
+piper-tts
+
+# =========================
+# Mobile App (Kivy)
+# =========================
+kivy
+kivymd  
+pyjnius
+
+# =========================
+# Database
+# =========================
+aiosqlite   
+
+# =========================
+# Utilities / Dev
+# =========================
+requests
+tqdm
+# Note: OpenAI 'whisper' removed - using faster-whisper instead (CPU-optimized, no API)
