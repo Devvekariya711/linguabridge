@@ -1,52 +1,222 @@
-# LinguaBridge - Git Documentation
-# =================================
+# LinguaBridge 🌉
 
-This folder contains Git-related configuration, CI/CD workflows, and scripts.
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/FastAPI-0.100+-green?logo=fastapi&logoColor=white" alt="FastAPI">
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
+  <img src="https://img.shields.io/badge/Platform-Windows%20|%20Linux%20|%20Android-lightgrey" alt="Platform">
+  <img src="https://img.shields.io/badge/Offline-100%25-orange" alt="Offline">
+</p>
 
-## Structure
+<p align="center">
+  <b>Real-time offline voice translation</b> — Speak in one language, hear in another. No internet required.
+</p>
 
-```
-git/
-├── .github/
-│   └── workflows/
-│       └── ci.yml          # GitHub Actions CI
-│
-├── scripts/
-│   ├── build_frontend.sh   # Build React frontend
-│   ├── run_local.sh        # Run dev server
-│   └── migrate_db.sh       # Database migration
-│
-├── .gitattributes          # Line endings config
-└── README.md               # This file
-```
+---
 
-## Scripts
+## 🤔 Why LinguaBridge?
 
-### run_local.sh
-Start development server:
+- 💡 **100% Offline** — All AI models run locally on your device
+- 🔒 **Privacy First** — No data leaves your computer, ever
+- 💸 **Zero Cost** — No API keys, no subscriptions, no cloud fees
+- ⚡ **Fast** — ~1.2s latency after warmup
+- 🌍 **Multi-Language** — English, Hindi, Japanese support
+
+---
+
+## ✨ Features
+
+| Feature | Technology | Status |
+|---------|------------|--------|
+| 🎤 **Speech-to-Text** | Faster-Whisper (OpenAI Whisper) | ✅ |
+| 🌐 **Translation** | Argos Translate (Neural MT) | ✅ |
+| 🔊 **Text-to-Speech** | Piper TTS (ONNX voices) | ✅ |
+| �️ **Server** | FastAPI + Socket.IO | ✅ |
+| 📱 **Mobile App** | Kivy (Python) | ✅ |
+| 🌐 **Web Frontend** | React (coming soon) | 🔧 |
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the repository
 ```bash
-./git/scripts/run_local.sh
+git clone https://github.com/Devvekariya711/linguabridge.git
+cd linguabridge
 ```
 
-### build_frontend.sh
-Build and deploy frontend:
+### 2. Create virtual environment
 ```bash
-./git/scripts/build_frontend.sh
+python -m venv .venv
+.venv\Scripts\activate  # Windows
+source .venv/bin/activate  # Linux/Mac
 ```
 
-### migrate_db.sh
-Initialize database:
+### 3. Install dependencies
 ```bash
-./git/scripts/migrate_db.sh
+pip install -r requirements.txt
 ```
 
-## CI/CD
+### 4. Download AI models
+```bash
+python backend/download_models.py --all
+```
 
-GitHub Actions runs on every push/PR to `main`:
-- Import tests for all engines
-- Code style check with flake8
+### 5. Start the server
+```bash
+python -m uvicorn backend.server.server_main:asgi_app --port 8000
+```
 
-## Notes
+### 6. Test translation
+```bash
+python test_quick.py
+```
 
-- Main `.gitignore` is at repository root (required by Git)
-- `.gitattributes` handles line endings for cross-platform compatibility
+---
+
+## 📁 Project Structure
+
+```
+linguabridge/
+├── backend/
+│   ├── server/              # FastAPI + Socket.IO server
+│   │   ├── engine_stt.py        # Whisper STT
+│   │   ├── engine_nmt.py        # Argos Translation
+│   │   ├── engine_tts.py        # Piper TTS
+│   │   └── server_main.py       # Main server
+│   ├── app/                 # Kivy mobile app
+│   │   ├── main.py              # App entry
+│   │   └── audio_streamer.py    # Mic capture
+│   └── database/            # SQLite storage
+│       └── db_manager.py        # Async CRUD
+├── frontend/                # React web UI (coming)
+├── git/                     # CI/CD, scripts, docs
+│   ├── .github/workflows/       # GitHub Actions
+│   └── scripts/                 # Build scripts
+└── test_quick.py            # Interactive test
+```
+
+---
+
+## 🌍 Supported Languages
+
+| Language | STT | Translation | TTS |
+|----------|:---:|:-----------:|:---:|
+| English | ✅ | ✅ | ✅ |
+| Hindi | ✅ | ✅ | ✅ |
+| Japanese | ✅ | ✅ | ❌ |
+
+---
+
+## ⚡ Performance
+
+| Metric | Cold Start | Warm |
+|--------|-----------|------|
+| **Full Pipeline** | ~9s | **~1.2s** |
+| STT (3s audio) | ~5s | ~0.6s |
+| Translation | ~0.5s | ~0.2s |
+| TTS | ~2.5s | ~0.3s |
+
+> 💡 **Tip:** Models are pre-loaded at server startup for fast first requests.
+
+---
+
+## 🔧 API Reference
+
+### REST Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/ping` | GET | Health check |
+| `/api/status` | GET | Engine status |
+
+### Socket.IO Events
+
+```javascript
+// Transcribe voice
+socket.emit('voice_chunk', audioBlob);
+socket.on('transcription_result', (data) => console.log(data.text));
+
+// Translate text
+socket.emit('translate_text', {
+  text: 'Hello',
+  source_lang: 'en',
+  target_lang: 'hi'
+});
+socket.on('translation_result', (data) => console.log(data.translated));
+
+// Full pipeline (STT → NMT → TTS)
+socket.emit('full_pipeline', {
+  audio: audioBlob,
+  source_lang: 'en',
+  target_lang: 'hi'
+});
+socket.on('pipeline_result', (data) => {
+  console.log(data.original, '→', data.translated);
+  playAudio(data.audio);
+});
+```
+
+---
+
+## 🛠️ Development
+
+```bash
+# Run interactive test
+python test_quick.py
+
+# Run full pipeline test
+python test_pipeline.py
+
+# Run latency benchmark
+python benchmark_latency.py
+```
+
+---
+
+## 📋 Requirements
+
+- Python 3.10+
+- ~2GB disk space for AI models
+- Microphone (for voice input)
+- Speakers (for audio output)
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+## 🔒 Security
+
+See [SECURITY.md](SECURITY.md) for security policy and responsible disclosure.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+## 🙏 Credits
+
+| Component | Technology |
+|-----------|------------|
+| STT | [Faster-Whisper](https://github.com/guillaumekln/faster-whisper) |
+| Translation | [Argos Translate](https://github.com/argosopentech/argos-translate) |
+| TTS | [Piper TTS](https://github.com/rhasspy/piper) |
+| Server | [FastAPI](https://fastapi.tiangolo.com/) |
+| Mobile UI | [Kivy](https://kivy.org/) |
+
+---
+
+<p align="center">
+  Made with ❤️ by <a href="https://github.com/Devvekariya711">Dev Vekariya</a>
+</p>
+
+<p align="center">
+  ⭐ Star this repo if you find it useful!
+</p>
