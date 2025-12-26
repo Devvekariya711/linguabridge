@@ -1,0 +1,73 @@
+# Git Attributes
+# ==============
+# Handle line endings and binary files
+
+# Auto detect text files and normalize line endings
+* text=auto
+
+# Python
+*.py text diff=python
+
+# Shell scripts
+*.sh text eol=lf
+
+# Windows batch files
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Config files
+*.json text
+*.yml text
+*.yaml text
+*.toml text
+*.ini text
+*.cfg text
+*.env text
+
+# Documentation
+*.md text diff=markdown
+*.txt text
+*.rst text
+
+# Web files
+*.html text diff=html
+*.css text diff=css
+*.js text
+*.jsx text
+*.ts text
+*.tsx text
+
+# Binary files - do not diff
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+
+# Audio files
+*.wav binary
+*.mp3 binary
+*.ogg binary
+
+# Model files
+*.onnx binary
+*.bin binary
+*.pt binary
+*.pth binary
+
+# Database
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+
+# Archives
+*.zip binary
+*.tar binary
+*.gz binary
+
+# Fonts
+*.ttf binary
+*.woff binary
+*.woff2 binary
