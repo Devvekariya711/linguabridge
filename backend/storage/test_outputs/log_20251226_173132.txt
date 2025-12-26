@@ -1,0 +1,13 @@
+LinguaBridge Translation Log
+============================
+Timestamp: 20251226_173132
+Direction: en -> hi
+
+INPUT TEXT:
+Minä olen hienoa, että joten olen.
+
+OUTPUT TEXT:
+Minä olen hienoa.
+
+INPUT AUDIO: input_20251226_173132.wav
+OUTPUT AUDIO: output_20251226_173132.wav

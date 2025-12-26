@@ -1,0 +1,13 @@
+LinguaBridge Translation Log
+============================
+Timestamp: 20251226_173311
+Direction: en -> hi
+
+INPUT TEXT:
+Hello, my name is D and what are your name?
+
+OUTPUT TEXT:
+नमस्ते, मेरा नाम डी है और आपका नाम क्या है?
+
+INPUT AUDIO: input_20251226_173311.wav
+OUTPUT AUDIO: output_20251226_173311.wav

@@ -1,0 +1,13 @@
+LinguaBridge Translation Log
+============================
+Timestamp: 20251226_172501
+Direction: en -> hi
+
+INPUT TEXT:
+Hello
+
+OUTPUT TEXT:
+नमस्ते
+
+INPUT AUDIO: input_20251226_172501.wav
+OUTPUT AUDIO: output_20251226_172501.wav

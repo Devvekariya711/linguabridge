@@ -62,23 +62,45 @@ sio = socketio.AsyncServer(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize engines on startup, cleanup on shutdown."""
-    logger.info("🚀 Starting LinguaBridge server...")
+    import numpy as np
     
-    # Pre-load engines (optional - can be lazy)
+    logger.info("Starting LinguaBridge server...")
+    logger.info("Pre-loading models for fast first request...")
+    
+    # Pre-load engines with dummy inference to warm cache
     try:
-        logger.info("Loading STT engine...")
+        # STT - load model and run dummy transcription
+        logger.info("[1/3] Loading STT engine (Whisper)...")
         stt = get_stt_engine()
-        logger.info("Loading NMT engine...")
+        dummy_audio = np.zeros(1600, dtype=np.float32)  # 0.1s silence
+        stt.transcribe(dummy_audio)
+        logger.info("      STT ready!")
+        
+        # NMT - load and run dummy translation
+        logger.info("[2/3] Loading NMT engine (Argos)...")
         nmt = get_nmt_engine()
-        logger.info("Loading TTS engine...")
+        nmt.translate("hello", "en", "hi")
+        logger.info("      NMT ready!")
+        
+        # TTS - load voice and run dummy synthesis
+        logger.info("[3/3] Loading TTS engine (Piper)...")
         tts = get_tts_engine()
-        logger.info("✅ All engines ready!")
+        tts.load_voice("en_US")
+        tts.load_voice("hi_IN")
+        tts.synthesize("test", voice_key="en_US")
+        logger.info("      TTS ready!")
+        
+        logger.info("=" * 50)
+        logger.info("ALL ENGINES LOADED - Ready for fast requests!")
+        logger.info("=" * 50)
+        
     except Exception as e:
-        logger.warning(f"⚠️ Engine preload failed: {e}")
+        logger.warning(f"Engine preload failed: {e}")
+        logger.warning("First request may be slow due to lazy loading")
     
     yield
     
-    logger.info("👋 Shutting down LinguaBridge server...")
+    logger.info("Shutting down LinguaBridge server...")
 
 
 # =============================================================================

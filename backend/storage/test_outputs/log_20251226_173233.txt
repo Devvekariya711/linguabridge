@@ -1,0 +1,13 @@
+LinguaBridge Translation Log
+============================
+Timestamp: 20251226_173233
+Direction: en -> hi
+
+INPUT TEXT:
+tung kya kar reho per kyu
+
+OUTPUT TEXT:
+kya kar reho प्रति kyu
+
+INPUT AUDIO: input_20251226_173233.wav
+OUTPUT AUDIO: output_20251226_173233.wav

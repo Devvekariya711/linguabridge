@@ -145,7 +145,11 @@ class MainLayout(BoxLayout):
             if not self.sio.connected:
                 logger.info(f"Connecting to {self.server_url}...")
                 self.status_text = "Connecting..."
-                self.sio.connect(self.server_url)
+                # Use websocket transport for better connection
+                self.sio.connect(
+                    self.server_url,
+                    transports=['websocket', 'polling']
+                )
         except Exception as e:
             logger.error(f"Connection failed: {e}")
             self.status_text = f"Error: {e}"
@@ -241,14 +245,13 @@ class LinguaBridgeApp(App):
     """Main Kivy application."""
     
     title = "LinguaBridge"
+    kv_file = ""  # Prevent auto-loading
     
     def build(self):
         """Build the app UI."""
-        # Load KV file
-        kv_file = Path(__file__).parent / "linguabridge.kv"
-        if kv_file.exists():
-            Builder.load_file(str(kv_file))
-        
+        # Load renamed KV file to avoid auto-loading
+        kv_path = Path(__file__).parent / "app_layout.kv"
+        Builder.load_file(str(kv_path))
         return MainLayout()
     
     def on_stop(self):

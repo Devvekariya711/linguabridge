@@ -1,0 +1,13 @@
+LinguaBridge Translation Log
+============================
+Timestamp: 20251226_172523
+Direction: en -> hi
+
+INPUT TEXT:
+Hello, how are you? What's you doing?
+
+OUTPUT TEXT:
+नमस्कार, आप कैसे हैं? आप क्या कर रहे हैं?
+
+INPUT AUDIO: input_20251226_172523.wav
+OUTPUT AUDIO: output_20251226_172523.wav
