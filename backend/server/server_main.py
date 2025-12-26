@@ -63,40 +63,65 @@ sio = socketio.AsyncServer(
 async def lifespan(app: FastAPI):
     """Initialize engines on startup, cleanup on shutdown."""
     import numpy as np
+    from .constants import LLM_ENABLED, MEMORY_ENABLED, PRELOAD_MODELS
     
     logger.info("Starting LinguaBridge server...")
-    logger.info("Pre-loading models for fast first request...")
     
-    # Pre-load engines with dummy inference to warm cache
-    try:
-        # STT - load model and run dummy transcription
-        logger.info("[1/3] Loading STT engine (Whisper)...")
-        stt = get_stt_engine()
-        dummy_audio = np.zeros(1600, dtype=np.float32)  # 0.1s silence
-        stt.transcribe(dummy_audio)
-        logger.info("      STT ready!")
+    # Initialize translation memory database
+    if MEMORY_ENABLED:
+        try:
+            from . import translation_memory
+            translation_memory.init_db()
+            logger.info("Translation memory initialized")
+        except Exception as e:
+            logger.warning(f"Memory init failed: {e}")
+    
+    if PRELOAD_MODELS:
+        logger.info("Pre-loading models for fast first request...")
         
-        # NMT - load and run dummy translation
-        logger.info("[2/3] Loading NMT engine (Argos)...")
-        nmt = get_nmt_engine()
-        nmt.translate("hello", "en", "hi")
-        logger.info("      NMT ready!")
-        
-        # TTS - load voice and run dummy synthesis
-        logger.info("[3/3] Loading TTS engine (Piper)...")
-        tts = get_tts_engine()
-        tts.load_voice("en_US")
-        tts.load_voice("hi_IN")
-        tts.synthesize("test", voice_key="en_US")
-        logger.info("      TTS ready!")
-        
-        logger.info("=" * 50)
-        logger.info("ALL ENGINES LOADED - Ready for fast requests!")
-        logger.info("=" * 50)
-        
-    except Exception as e:
-        logger.warning(f"Engine preload failed: {e}")
-        logger.warning("First request may be slow due to lazy loading")
+        try:
+            # STT
+            logger.info("[1/4] Loading STT engine (Whisper)...")
+            stt = get_stt_engine()
+            dummy_audio = np.zeros(1600, dtype=np.float32)
+            stt.transcribe(dummy_audio)
+            logger.info("      STT ready!")
+            
+            # NMT (Argos)
+            logger.info("[2/4] Loading NMT engine (Argos)...")
+            nmt = get_nmt_engine()
+            nmt.translate("hello", "en", "hi")
+            logger.info("      NMT ready!")
+            
+            # LLM (Ollama)
+            if LLM_ENABLED:
+                logger.info("[3/4] Checking LLM engine (Ollama)...")
+                try:
+                    from . import engine_llm
+                    if engine_llm.is_llm_available():
+                        logger.info(f"      LLM ready: {engine_llm.DEFAULT_MODEL}")
+                    else:
+                        logger.warning("      LLM not available (ollama not running)")
+                except Exception as e:
+                    logger.warning(f"      LLM check failed: {e}")
+            else:
+                logger.info("[3/4] LLM disabled in config")
+            
+            # TTS
+            logger.info("[4/4] Loading TTS engine (Piper)...")
+            tts = get_tts_engine()
+            tts.load_voice("en_US")
+            tts.load_voice("hi_IN")
+            tts.synthesize("test", voice_key="en_US")
+            logger.info("      TTS ready!")
+            
+            logger.info("=" * 50)
+            logger.info("ALL ENGINES LOADED - Ready for fast requests!")
+            logger.info("=" * 50)
+            
+        except Exception as e:
+            logger.warning(f"Engine preload failed: {e}")
+            logger.warning("First request may be slow due to lazy loading")
     
     yield
     
@@ -221,14 +246,20 @@ async def translate_text(sid, data):
         text = data.get("text", "")
         source = data.get("source_lang", "en")
         target = data.get("target_lang", "hi")
+        use_llm = data.get("use_llm", True)  # Client can disable LLM
         
-        translated = nmt.translate(text, source, target)
+        # Use smart_translate with memory -> LLM -> Argos fallback
+        translated, meta = nmt.smart_translate(
+            text, source, target, use_llm=use_llm
+        )
         
         await sio.emit("translation_result", {
             "original": text,
             "translated": translated,
             "source": source,
             "target": target,
+            "translation_source": meta.get("source", "unknown"),
+            "latency": meta.get("latency", 0),
         }, to=sid)
         
         logger.debug(f"NMT: {text[:30]} -> {translated[:30]}")
@@ -289,8 +320,11 @@ async def full_pipeline(sid, data):
         audio = wav_bytes_to_numpy(audio_bytes)
         original_text = stt.transcribe(audio)
         
-        # NMT
-        translated_text = nmt.translate(original_text, source, target)
+        # NMT with smart_translate (memory -> LLM -> Argos)
+        use_llm = data.get("use_llm", True)
+        translated_text, nmt_meta = nmt.smart_translate(
+            original_text, source, target, use_llm=use_llm
+        )
         
         # TTS
         output_audio = tts.synthesize(translated_text, voice_key=voice)
@@ -300,6 +334,7 @@ async def full_pipeline(sid, data):
             "original": original_text,
             "translated": translated_text,
             "audio": output_wav,
+            "translation_source": nmt_meta.get("source", "unknown"),
         }, to=sid)
         
         logger.info(f"Pipeline: '{original_text[:30]}' -> '{translated_text[:30]}'")

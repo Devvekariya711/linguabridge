@@ -300,9 +300,137 @@ class NMTEngine:
         """Get human-readable name for a language code."""
         return LANGUAGE_NAMES.get(code, code.upper())
     
+    def smart_translate(
+        self,
+        text: str,
+        source_lang: str,
+        target_lang: str,
+        use_llm: bool = True,
+        use_memory: bool = True,
+        use_context: bool = True,
+    ) -> Tuple[str, dict]:
+        """
+        Smart translation with memory → LLM → Argos fallback.
+        
+        Args:
+            text: Text to translate
+            source_lang: Source language code
+            target_lang: Target language code
+            use_llm: Whether to use LLM for quality (slower)
+            use_memory: Whether to check/save translation memory
+            use_context: Whether to include context in LLM prompt
+            
+        Returns:
+            (translated_text, metadata_dict)
+        """
+        # Handle edge cases
+        if not text or not text.strip():
+            return "", {"source": "empty"}
+        
+        if source_lang == target_lang:
+            return text, {"source": "same_lang"}
+        
+        metadata = {"source": "unknown", "latency": 0}
+        
+        import time
+        start = time.perf_counter()
+        
+        # 1. Check translation memory first (fastest)
+        if use_memory:
+            try:
+                from . import translation_memory
+                cached = translation_memory.find_exact(text, source_lang, target_lang)
+                if cached:
+                    metadata["source"] = "memory"
+                    metadata["latency"] = round(time.perf_counter() - start, 3)
+                    logger.debug(f"Memory hit: '{text[:30]}...'")
+                    return cached, metadata
+            except Exception as e:
+                logger.debug(f"Memory lookup failed: {e}")
+        
+        # 2. For short phrases (<=4 words), use Argos (fast)
+        #    For longer text, use LLM (quality)
+        word_count = len(text.split())
+        
+        if use_llm and word_count > 4:
+            try:
+                from . import engine_llm
+                
+                # Build context from recent translations
+                context = None
+                if use_context and use_memory:
+                    try:
+                        from . import translation_memory
+                        context = translation_memory.build_context(source_lang, target_lang, limit=5)
+                    except Exception:
+                        pass
+                
+                # Use LLM
+                translation, llm_meta = engine_llm.translate(
+                    text, source_lang, target_lang, context=context
+                )
+                
+                metadata["source"] = "llm"
+                metadata["model"] = llm_meta.get("model", "unknown")
+                metadata["latency"] = round(time.perf_counter() - start, 3)
+                
+                # Save to memory for future
+                if use_memory and translation:
+                    try:
+                        from . import translation_memory
+                        translation_memory.save_translation(
+                            text, source_lang, translation, target_lang, source="llm"
+                        )
+                    except Exception as e:
+                        logger.debug(f"Failed to save to memory: {e}")
+                
+                return translation, metadata
+                
+            except Exception as e:
+                logger.warning(f"LLM translation failed, falling back to Argos: {e}")
+        
+        # 3. Fallback to Argos (fast, always available)
+        try:
+            translation = self.translate(text, source_lang, target_lang, auto_install=True)
+            metadata["source"] = "argos"
+            metadata["latency"] = round(time.perf_counter() - start, 3)
+            
+            # Save to memory
+            if use_memory and translation:
+                try:
+                    from . import translation_memory
+                    translation_memory.save_translation(
+                        text, source_lang, translation, target_lang, source="argos"
+                    )
+                except Exception as e:
+                    logger.debug(f"Failed to save to memory: {e}")
+            
+            return translation, metadata
+            
+        except Exception as e:
+            logger.error(f"All translation methods failed: {e}")
+            raise RuntimeError(f"Translation failed: {e}")
+    
     def get_model_info(self) -> dict:
         """Return information about installed models."""
         installed = self.get_installed_languages()
+        
+        # Check LLM availability
+        llm_info = {}
+        try:
+            from . import engine_llm
+            llm_info = engine_llm.get_model_info()
+        except Exception:
+            llm_info = {"available": False}
+        
+        # Check memory stats
+        memory_info = {}
+        try:
+            from . import translation_memory
+            memory_info = translation_memory.get_stats()
+        except Exception:
+            memory_info = {"total_entries": 0}
+        
         return {
             "available": self._argos_available,
             "installed_pairs": [
@@ -310,6 +438,8 @@ class NMTEngine:
             ],
             "installed_count": len(installed),
             "models_dir": str(ARGOS_MODELS_DIR),
+            "llm": llm_info,
+            "memory": memory_info,
         }
 
 

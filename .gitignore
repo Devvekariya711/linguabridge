@@ -50,5 +50,14 @@ backend/storage/temp_audio/
 .DS_Store
 Thumbs.db
 
-# Test output
+# Test files and outputs
+test_*.py
+benchmark_*.py
 test_output.txt
+backend/storage/test_outputs/
+
+# Translation memory database (user-specific cache)
+backend/database/translation_memory.db
+
+# Conversations database (user data)
+backend/database/conversations.db
