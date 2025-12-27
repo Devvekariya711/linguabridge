@@ -188,6 +188,35 @@ async def status():
     }
 
 
+@app.get("/api/memory/stats")
+async def memory_stats():
+    """Get translation memory statistics."""
+    try:
+        from . import translation_memory
+        stats = translation_memory.get_stats()
+        return {"ok": True, "stats": stats}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/api/memory/clear")
+async def clear_memory():
+    """
+    Clear all translation memory and vector DB.
+    Use with caution - this deletes all cached translations!
+    """
+    try:
+        from . import translation_memory
+        translation_memory.clear_memory()
+        return {
+            "ok": True,
+            "message": "Translation memory cleared successfully"
+        }
+    except Exception as e:
+        logger.error(f"Failed to clear memory: {e}")
+        return {"ok": False, "error": str(e)}
+
+
 # =============================================================================
 # SOCKET.IO EVENT HANDLERS
 # =============================================================================
