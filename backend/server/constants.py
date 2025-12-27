@@ -57,16 +57,28 @@ CORS_ALLOWED_ORIGINS = get_env("CORS_ALLOWED_ORIGINS", "*").split(",")
 # =============================================================================
 # User can change model in .env: tiny, base, small, medium, large-v2, large-v3
 STT_MODEL = get_env("STT_MODEL", "base")
-STT_DEVICE = get_env("STT_DEVICE", "cpu")
-STT_COMPUTE_TYPE = get_env("STT_COMPUTE_TYPE", "int8")
+STT_DEVICE = get_env("STT_DEVICE", "cuda")
+STT_COMPUTE_TYPE = get_env("STT_COMPUTE_TYPE", "float16")
 
 WHISPER_MODELS_DIR = Path(get_env("WHISPER_CACHE_DIR", str(VOICE_MODELS_DIR / "whisper")))
 WHISPER_MODEL_NAME = STT_MODEL
 WHISPER_MODEL_PATH = WHISPER_MODELS_DIR / WHISPER_MODEL_NAME
 WHISPER_COMPUTE_TYPE = STT_COMPUTE_TYPE
 WHISPER_DEVICE = STT_DEVICE
-WHISPER_BEAM_SIZE = 5
+WHISPER_BEAM_SIZE = 1  # Faster for streaming
 WHISPER_VAD_FILTER = True
+
+# Streaming STT Parameters
+STT_WINDOW_SECONDS = get_env_float("STT_WINDOW_SECONDS", 1.0)
+STT_STEP_SECONDS = get_env_float("STT_STEP_SECONDS", 0.25)
+CLIENT_FRAME_MS = get_env_int("CLIENT_FRAME_MS", 250)
+
+# =============================================================================
+# PIPELINE WORKERS
+# =============================================================================
+NMT_WORKERS = get_env_int("NMT_WORKERS", 2)
+TTS_WORKERS = get_env_int("TTS_WORKERS", 2)
+LIVE_CHUNK_MAX_WORDS = get_env_int("LIVE_CHUNK_MAX_WORDS", 4)
 
 # =============================================================================
 # NMT (Neural Machine Translation) - Argos Translate

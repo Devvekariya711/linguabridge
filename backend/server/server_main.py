@@ -230,6 +230,139 @@ async def connect(sid, environ):
 async def disconnect(sid):
     """Handle client disconnection."""
     logger.info(f"Client disconnected: {sid}")
+    
+    # Cleanup streaming session
+    try:
+        from . import stt_streamer
+        from . import pipeline
+        stt_streamer.end_session(sid)
+        pipeline.reset_session(sid)
+    except Exception as e:
+        logger.debug(f"Session cleanup error: {e}")
+
+
+# =============================================================================
+# STREAMING EVENTS (Live Translation)
+# =============================================================================
+@sio.event
+async def start_stream(sid, data):
+    """
+    Start live streaming session.
+    Client should call this before sending audio frames.
+    
+    Input: {source_lang, target_lang}
+    """
+    try:
+        from . import stt_streamer
+        
+        source_lang = data.get("source_lang", "en")
+        target_lang = data.get("target_lang", "hi")
+        
+        # Store language settings for session
+        await sio.save_session(sid, {
+            "source_lang": source_lang,
+            "target_lang": target_lang,
+            "streaming": True,
+        })
+        
+        # Start streaming STT
+        await stt_streamer.start_session(sio, sid)
+        
+        logger.info(f"Started stream [{sid}]: {source_lang} → {target_lang}")
+        
+        await sio.emit("stream_started", {
+            "source_lang": source_lang,
+            "target_lang": target_lang,
+        }, to=sid)
+        
+    except Exception as e:
+        logger.error(f"Start stream error: {e}")
+        await sio.emit("error", {"type": "stream", "message": str(e)}, to=sid)
+
+
+@sio.event
+async def stop_stream(sid, data=None):
+    """
+    Stop live streaming session.
+    Triggers final LLM polish pass.
+    """
+    try:
+        from . import stt_streamer
+        from . import pipeline
+        
+        session = await sio.get_session(sid)
+        source_lang = session.get("source_lang", "en")
+        target_lang = session.get("target_lang", "hi")
+        
+        # Get final text for LLM polish
+        stt_session = stt_streamer.SESSIONS.get(sid)
+        if stt_session and stt_session.last_full_text:
+            await pipeline.handle_final_pass(
+                sio, sid,
+                stt_session.last_full_text,
+                source_lang, target_lang
+            )
+        
+        # Cleanup
+        stt_streamer.end_session(sid)
+        pipeline.reset_session(sid)
+        
+        logger.info(f"Stopped stream [{sid}]")
+        
+        await sio.emit("stream_stopped", {}, to=sid)
+        
+    except Exception as e:
+        logger.error(f"Stop stream error: {e}")
+
+
+@sio.event
+async def audio_frame(sid, data):
+    """
+    Handle incoming audio frame for live STT.
+    
+    Input: {data: PCM16 bytes, order: int}
+    """
+    try:
+        from . import stt_streamer
+        
+        if isinstance(data, dict):
+            pcm_bytes = data.get("data", b"")
+            order = data.get("order", 0)
+        else:
+            pcm_bytes = data
+            order = 0
+        
+        await stt_streamer.handle_audio_frame(sio, sid, pcm_bytes, order)
+        
+    except Exception as e:
+        logger.error(f"Audio frame error: {e}")
+
+
+@sio.event
+async def stt_partial(sid, data):
+    """
+    Handle partial STT result and send through translation pipeline.
+    This is called internally by stt_streamer.
+    
+    Input: {text, full_text}
+    """
+    try:
+        from . import pipeline
+        
+        session = await sio.get_session(sid)
+        source_lang = session.get("source_lang", "en")
+        target_lang = session.get("target_lang", "hi")
+        
+        text = data.get("text", "")
+        
+        if text:
+            await pipeline.handle_stt_partial(
+                sio, sid, text,
+                source_lang, target_lang
+            )
+        
+    except Exception as e:
+        logger.error(f"STT partial handler error: {e}")
 
 
 @sio.event
