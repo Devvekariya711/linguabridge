@@ -81,19 +81,22 @@ linguabridge/
 ├── backend/
 │   ├── server/              # FastAPI + Socket.IO server
 │   │   ├── engine_stt.py        # Whisper STT
-│   │   ├── engine_nmt.py        # Argos Translation
+│   │   ├── engine_nmt.py        # Argos + LLM Translation
 │   │   ├── engine_tts.py        # Piper TTS
+│   │   ├── engine_llm.py        # Ollama LLM wrapper
+│   │   ├── embeddings.py        # Sentence-transformers
+│   │   ├── vector_db.py         # ChromaDB vector store
+│   │   ├── translation_memory.py # SQLite + RAG cache
 │   │   └── server_main.py       # Main server
 │   ├── app/                 # Kivy mobile app
 │   │   ├── main.py              # App entry
 │   │   └── audio_streamer.py    # Mic capture
-│   └── database/            # SQLite storage
-│       └── db_manager.py        # Async CRUD
+│   └── database/            # SQLite + ChromaDB storage
 ├── frontend/                # React web UI (coming)
 ├── git/                     # CI/CD, scripts, docs
 │   ├── .github/workflows/       # GitHub Actions
 │   └── scripts/                 # Build scripts
-└── test_quick.py            # Interactive test
+└── requirements.txt         # All dependencies
 ```
 
 ---
@@ -110,14 +113,15 @@ linguabridge/
 
 ## ⚡ Performance
 
-| Metric | Cold Start | Warm |
-|--------|-----------|------|
-| **Full Pipeline** | ~9s | **~1.2s** |
-| STT (3s audio) | ~5s | ~0.6s |
-| Translation | ~0.5s | ~0.2s |
-| TTS | ~2.5s | ~0.3s |
+| Metric | Cold Start | Warm | With Cache |
+|--------|-----------|------|------------|
+| **Full Pipeline** | ~9s | ~1.2s | **<0.1s** |
+| STT (3s audio) | ~5s | ~0.6s | - |
+| Translation (LLM) | ~3s | ~2s | **<1ms** |
+| Translation (Argos) | ~0.5s | ~0.2s | **<1ms** |
+| TTS | ~2.5s | ~0.3s | - |
 
-> 💡 **Tip:** Models are pre-loaded at server startup for fast first requests.
+> 💡 **Translation Memory:** Cached phrases return in <1ms via exact match or vector search.
 
 ---
 
@@ -177,9 +181,12 @@ python benchmark_latency.py
 ## 📋 Requirements
 
 - Python 3.10+
-- ~2GB disk space for AI models
+- ~3GB disk space for AI models
+- ~90MB for embedding model
 - Microphone (for voice input)
 - Speakers (for audio output)
+- **Optional:** Ollama for LLM translation
+- **Optional:** GPU for faster inference
 
 ---
 
@@ -207,6 +214,9 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 |-----------|------------|
 | STT | [Faster-Whisper](https://github.com/guillaumekln/faster-whisper) |
 | Translation | [Argos Translate](https://github.com/argosopentech/argos-translate) |
+| LLM | [Ollama](https://ollama.ai) |
+| Vector Search | [ChromaDB](https://github.com/chroma-core/chroma) |
+| Embeddings | [Sentence-Transformers](https://www.sbert.net/) |
 | TTS | [Piper TTS](https://github.com/rhasspy/piper) |
 | Server | [FastAPI](https://fastapi.tiangolo.com/) |
 | Mobile UI | [Kivy](https://kivy.org/) |

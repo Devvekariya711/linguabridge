@@ -59,5 +59,8 @@ backend/storage/test_outputs/
 # Translation memory database (user-specific cache)
 backend/database/translation_memory.db
 
+# ChromaDB vector database (user-specific)
+backend/database/chroma/
+
 # Conversations database (user data)
 backend/database/conversations.db

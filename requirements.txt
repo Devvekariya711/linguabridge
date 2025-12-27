@@ -1,3 +1,8 @@
+# =============================================================================
+# LinguaBridge Requirements
+# =============================================================================
+# Install: pip install -r requirements.txt
+
 # =========================
 # Core Backend
 # =========================
@@ -12,14 +17,13 @@ python-dotenv
 # =========================
 numpy
 sounddevice
-pyaudio
 scipy
 
 # =========================
 # Speech-to-Text (STT)
 # =========================
 faster-whisper
-# Note: ctranslate2 is auto-installed as dependency of faster-whisper
+# Note: ctranslate2 auto-installed as dependency
 
 # =========================
 # Translation (NMT)
@@ -27,25 +31,41 @@ faster-whisper
 argostranslate
 
 # =========================
+# LLM Translation (Ollama)
+# =========================
+# Ollama installed separately: https://ollama.ai
+# Models: ollama pull qwen2.5:7b
+
+# =========================
 # Text-to-Speech (TTS)
 # =========================
 piper-tts
 
 # =========================
+# Vector Search (RAG)
+# =========================
+chromadb
+sentence-transformers
+
+# =========================
 # Mobile App (Kivy)
 # =========================
 kivy
-kivymd  
-pyjnius
+kivymd
 
 # =========================
 # Database
 # =========================
-aiosqlite   
+aiosqlite
 
 # =========================
-# Utilities / Dev
+# Utilities
 # =========================
 requests
 tqdm
-# Note: OpenAI 'whisper' removed - using faster-whisper instead (CPU-optimized, no API)
+
+# =========================
+# Optional: GPU Support
+# =========================
+# For GPU acceleration, install PyTorch with CUDA:
+# pip install torch --index-url https://download.pytorch.org/whl/cu118
