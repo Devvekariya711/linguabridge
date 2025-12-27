@@ -335,20 +335,36 @@ class NMTEngine:
         import time
         start = time.perf_counter()
         
-        # 1. Check translation memory first (fastest)
+        # 1. Check exact match first (fastest - <1ms)
         if use_memory:
             try:
                 from . import translation_memory
                 cached = translation_memory.find_exact(text, source_lang, target_lang)
                 if cached:
-                    metadata["source"] = "memory"
+                    metadata["source"] = "memory_exact"
                     metadata["latency"] = round(time.perf_counter() - start, 3)
-                    logger.debug(f"Memory hit: '{text[:30]}...'")
+                    logger.debug(f"Exact match: '{text[:30]}...'")
                     return cached, metadata
             except Exception as e:
-                logger.debug(f"Memory lookup failed: {e}")
+                logger.debug(f"Exact lookup failed: {e}")
         
-        # 2. For short phrases (<=4 words), use Argos (fast)
+        # 2. Try vector search for fuzzy match (~50ms)
+        if use_memory:
+            try:
+                from . import translation_memory
+                similar = translation_memory.find_similar(text, source_lang, target_lang)
+                if similar:
+                    matched_src, tgt_text, similarity = similar
+                    metadata["source"] = "memory_vector"
+                    metadata["similarity"] = similarity
+                    metadata["matched"] = matched_src[:50]
+                    metadata["latency"] = round(time.perf_counter() - start, 3)
+                    logger.debug(f"Vector match ({similarity:.2f}): '{text[:30]}...'")
+                    return tgt_text, metadata
+            except Exception as e:
+                logger.debug(f"Vector search failed: {e}")
+        
+        # 3. For short phrases (<=4 words), use Argos (fast)
         #    For longer text, use LLM (quality)
         word_count = len(text.split())
         
