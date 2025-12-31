@@ -1,213 +1,240 @@
 """
 LinguaBridge Bluetooth Manager
-==============================
-Bluetooth device management for earbuds.
-
-Note: Full Bluetooth implementation requires platform-specific code.
-This is a stub for desktop testing.
+===============================
+Helpers for Bluetooth audio device detection and management.
+Uses sounddevice for device enumeration (cross-platform).
 """
 
 import logging
-from typing import List, Dict, Optional, Callable
+from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
-
-class BluetoothDevice:
-    """Represents a Bluetooth device."""
-    
-    def __init__(self, device_id: str, name: str, address: str):
-        self.device_id = device_id
-        self.name = name
-        self.address = address
-        self.is_connected = False
-        self.channel = None  # "left" or "right" for earbuds
-    
-    def __repr__(self):
-        return f"BluetoothDevice({self.name}, {self.address})"
+# Try to import sounddevice
+try:
+    import sounddevice as sd
+    SOUNDDEVICE_AVAILABLE = True
+except ImportError:
+    SOUNDDEVICE_AVAILABLE = False
+    logger.warning("sounddevice not installed. Audio device features disabled.")
 
 
-class BluetoothManager:
+# =============================================================================
+# BLUETOOTH DETECTION KEYWORDS
+# =============================================================================
+
+BLUETOOTH_KEYWORDS = [
+    # Generic
+    'bluetooth', 'bt ', 'wireless',
+    # Profiles
+    'a2dp', 'hfp', 'hands-free', 'headset',
+    # Common brands
+    'airpods', 'galaxy buds', 'jabra', 'bose', 'sony wh', 'wf-',
+    'beats', 'jbl', 'marshall', 'sennheiser', 'skullcandy',
+    'anker', 'soundcore', 'realme buds', 'oneplus buds',
+    'boat', 'noise', 'boult'  # Indian brands
+]
+
+
+# =============================================================================
+# DEVICE DISCOVERY
+# =============================================================================
+
+def is_bluetooth_device(name: str) -> bool:
+    """Check if device name suggests Bluetooth."""
+    if not name:
+        return False
+    name_lower = name.lower()
+    return any(kw in name_lower for kw in BLUETOOTH_KEYWORDS)
+
+
+def find_bluetooth_audio_devices() -> List[Dict[str, Any]]:
     """
-    Manage Bluetooth device connections.
+    Find all Bluetooth audio devices.
     
-    Provides abstraction for:
-    - Device discovery
-    - Pairing and connection
-    - Audio routing to left/right channels
-    
-    Note: Desktop fallback uses simulated devices.
+    Returns:
+        List of device dicts with id, name, input/output channels
     """
+    if not SOUNDDEVICE_AVAILABLE:
+        logger.error("sounddevice not available")
+        return []
     
-    def __init__(self):
-        self._devices: Dict[str, BluetoothDevice] = {}
-        self._connected_devices: List[str] = []
-        self._is_scanning = False
-        self._on_device_found: Optional[Callable[[BluetoothDevice], None]] = None
+    bluetooth_devices = []
     
-    def scan_devices(self, timeout: int = 5) -> List[BluetoothDevice]:
-        """
-        Scan for available Bluetooth devices.
-        
-        Args:
-            timeout: Scan duration in seconds
-            
-        Returns:
-            List of discovered devices
-        """
-        logger.info(f"Scanning for devices (timeout={timeout}s)...")
-        self._is_scanning = True
-        
-        # Platform-specific scanning would go here
-        # For now, return empty list (desktop fallback)
-        
-        self._is_scanning = False
-        logger.info(f"Found {len(self._devices)} devices")
-        return list(self._devices.values())
-    
-    def connect(self, device_id: str) -> bool:
-        """
-        Connect to a Bluetooth device.
-        
-        Args:
-            device_id: Device identifier
-            
-        Returns:
-            True if connected successfully
-        """
-        if device_id not in self._devices:
-            logger.error(f"Device not found: {device_id}")
-            return False
-        
-        device = self._devices[device_id]
-        
-        # Platform-specific connection would go here
-        device.is_connected = True
-        self._connected_devices.append(device_id)
-        
-        logger.info(f"Connected to: {device.name}")
-        return True
-    
-    def disconnect(self, device_id: str) -> bool:
-        """
-        Disconnect from a Bluetooth device.
-        
-        Args:
-            device_id: Device identifier
-            
-        Returns:
-            True if disconnected successfully
-        """
-        if device_id not in self._devices:
-            return False
-        
-        device = self._devices[device_id]
-        device.is_connected = False
-        
-        if device_id in self._connected_devices:
-            self._connected_devices.remove(device_id)
-        
-        logger.info(f"Disconnected from: {device.name}")
-        return True
-    
-    def assign_channel(self, device_id: str, channel: str) -> bool:
-        """
-        Assign a device to audio channel.
-        
-        Args:
-            device_id: Device identifier
-            channel: "left" or "right"
-            
-        Returns:
-            True if assigned successfully
-        """
-        if channel not in ("left", "right"):
-            logger.error(f"Invalid channel: {channel}")
-            return False
-        
-        if device_id not in self._devices:
-            logger.error(f"Device not found: {device_id}")
-            return False
-        
-        device = self._devices[device_id]
-        device.channel = channel
-        
-        logger.info(f"Assigned {device.name} to {channel} channel")
-        return True
-    
-    def get_connected_devices(self) -> List[BluetoothDevice]:
-        """Get list of connected devices."""
-        return [
-            self._devices[did]
-            for did in self._connected_devices
-            if did in self._devices
-        ]
-    
-    def get_channel_device(self, channel: str) -> Optional[BluetoothDevice]:
-        """Get device assigned to a channel."""
-        for device in self._devices.values():
-            if device.channel == channel and device.is_connected:
-                return device
-        return None
-    
-    def is_scanning(self) -> bool:
-        """Check if currently scanning."""
-        return self._is_scanning
-    
-    def register_device_callback(
-        self,
-        callback: Callable[[BluetoothDevice], None]
-    ) -> None:
-        """Register callback for device discovery."""
-        self._on_device_found = callback
-
-
-# Android-specific implementation stub
-class AndroidBluetoothManager(BluetoothManager):
-    """
-    Android Bluetooth implementation using pyjnius.
-    
-    Requires: pyjnius, Android permissions
-    """
-    
-    def __init__(self):
-        super().__init__()
-        self._bt_adapter = None
-        
-        try:
-            from jnius import autoclass
-            self.BluetoothAdapter = autoclass('android.bluetooth.BluetoothAdapter')
-            self._bt_adapter = self.BluetoothAdapter.getDefaultAdapter()
-            logger.info("Android Bluetooth initialized")
-        except ImportError:
-            logger.warning("pyjnius not available - using fallback")
-        except Exception as e:
-            logger.error(f"Android Bluetooth init failed: {e}")
-    
-    def scan_devices(self, timeout: int = 5) -> List[BluetoothDevice]:
-        """Scan for Bluetooth devices on Android."""
-        if not self._bt_adapter:
-            return super().scan_devices(timeout)
-        
-        # Android-specific scanning would go here
-        # Using bonded devices as fallback
-        paired = self._bt_adapter.getBondedDevices()
-        if paired:
-            for device in paired.toArray():
-                bd = BluetoothDevice(
-                    device_id=device.getAddress(),
-                    name=device.getName() or "Unknown",
-                    address=device.getAddress(),
-                )
-                self._devices[bd.device_id] = bd
-        
-        return list(self._devices.values())
-
-
-def get_bluetooth_manager() -> BluetoothManager:
-    """Get appropriate Bluetooth manager for platform."""
     try:
-        from jnius import autoclass
-        return AndroidBluetoothManager()
-    except ImportError:
-        return BluetoothManager()
+        devices = sd.query_devices()
+        
+        for i, d in enumerate(devices):
+            if is_bluetooth_device(d['name']):
+                device_info = {
+                    "id": i,
+                    "name": d['name'],
+                    "input_channels": d['max_input_channels'],
+                    "output_channels": d['max_output_channels'],
+                    "sample_rate": d['default_samplerate'],
+                    "is_input": d['max_input_channels'] > 0,
+                    "is_output": d['max_output_channels'] > 0,
+                }
+                bluetooth_devices.append(device_info)
+                
+    except Exception as e:
+        logger.error(f"Error enumerating Bluetooth devices: {e}")
+    
+    return bluetooth_devices
+
+
+def get_all_audio_devices() -> List[Dict[str, Any]]:
+    """
+    Get all audio devices with Bluetooth detection.
+    
+    Returns:
+        List of device dicts
+    """
+    if not SOUNDDEVICE_AVAILABLE:
+        return []
+    
+    devices = []
+    
+    try:
+        raw_devices = sd.query_devices()
+        default_input, default_output = sd.default.device
+        
+        for i, d in enumerate(raw_devices):
+            device_info = {
+                "id": i,
+                "name": d['name'],
+                "input_channels": d['max_input_channels'],
+                "output_channels": d['max_output_channels'],
+                "sample_rate": d['default_samplerate'],
+                "is_input": d['max_input_channels'] > 0,
+                "is_output": d['max_output_channels'] > 0,
+                "is_default_input": (i == default_input),
+                "is_default_output": (i == default_output),
+                "is_bluetooth": is_bluetooth_device(d['name']),
+            }
+            devices.append(device_info)
+            
+    except Exception as e:
+        logger.error(f"Error enumerating devices: {e}")
+    
+    return devices
+
+
+def get_recommended_devices() -> Dict[str, Any]:
+    """
+    Get recommended playback and capture devices.
+    
+    Prefers:
+    - Playback: Bluetooth A2DP (stereo output)
+    - Capture: Built-in mic (better quality than HFP mic)
+    
+    Returns:
+        Dict with recommended playback and capture device IDs
+    """
+    devices = get_all_audio_devices()
+    
+    recommended_playback = None
+    recommended_capture = None
+    
+    # Find best playback (prefer Bluetooth with output)
+    for d in devices:
+        if d['is_output']:
+            # Prefer Bluetooth for playback
+            if d['is_bluetooth'] and recommended_playback is None:
+                recommended_playback = d['id']
+            # If no Bluetooth, use default
+            elif d['is_default_output'] and recommended_playback is None:
+                recommended_playback = d['id']
+    
+    # Find best capture (prefer built-in over Bluetooth)
+    for d in devices:
+        if d['is_input']:
+            # Prefer non-Bluetooth for better quality
+            if not d['is_bluetooth'] and recommended_capture is None:
+                recommended_capture = d['id']
+    
+    # Fallback to Bluetooth capture if no other mic
+    if recommended_capture is None:
+        for d in devices:
+            if d['is_input'] and d['is_bluetooth']:
+                recommended_capture = d['id']
+                break
+    
+    return {
+        "recommended_playback": recommended_playback,
+        "recommended_capture": recommended_capture,
+        "note": "Recommended: Bluetooth for playback, built-in mic for capture (better quality)"
+    }
+
+
+def refresh_devices() -> List[Dict[str, Any]]:
+    """
+    Refresh device list (useful after pairing new device).
+    
+    Note: User should pair Bluetooth in Windows Settings first.
+    """
+    # Force sounddevice to refresh
+    if SOUNDDEVICE_AVAILABLE:
+        try:
+            # Some versions support this
+            sd._terminate()
+            sd._initialize()
+        except:
+            pass
+    
+    return get_all_audio_devices()
+
+
+# =============================================================================
+# USER GUIDANCE
+# =============================================================================
+
+def get_pairing_instructions() -> str:
+    """Get instructions for pairing Bluetooth audio."""
+    return """
+📱 How to Pair Bluetooth Earbuds:
+
+1. Put earbuds in pairing mode (usually hold button 3-5 seconds)
+2. Open Windows Settings → Bluetooth & devices
+3. Click "Add device" → Bluetooth
+4. Select your earbuds from the list
+5. Wait for "Connected" status
+6. Return to LinguaBridge and click "Refresh Devices"
+
+💡 Tips:
+- For best quality: Use earbuds for playback (TTS), laptop mic for speech
+- Bluetooth adds ~100ms latency - this is normal
+- If mic quality is poor, use built-in laptop microphone
+"""
+
+
+# =============================================================================
+# DEVICE PREFERENCE (Simple in-memory storage)
+# =============================================================================
+
+class BluetoothPreference:
+    """Store user's Bluetooth device preferences."""
+    
+    _playback_device: Optional[int] = None
+    _capture_device: Optional[int] = None
+    
+    @classmethod
+    def set_playback(cls, device_id: Optional[int]):
+        cls._playback_device = device_id
+    
+    @classmethod
+    def set_capture(cls, device_id: Optional[int]):
+        cls._capture_device = device_id
+    
+    @classmethod
+    def get_playback(cls) -> Optional[int]:
+        return cls._playback_device
+    
+    @classmethod
+    def get_capture(cls) -> Optional[int]:
+        return cls._capture_device
+    
+    @classmethod
+    def reset(cls):
+        cls._playback_device = None
+        cls._capture_device = None

@@ -218,6 +218,97 @@ async def clear_memory():
 
 
 # =============================================================================
+# AUDIO DEVICE ENDPOINTS
+# =============================================================================
+
+@app.get("/api/audio/devices")
+async def list_audio_devices():
+    """List all available audio input/output devices."""
+    try:
+        from . import audio_devices
+        devices = audio_devices.list_all_devices()
+        summary = audio_devices.get_devices_summary()
+        
+        return {
+            "ok": True,
+            "devices": [d.to_dict() for d in devices],
+            "summary": summary,
+        }
+    except Exception as e:
+        logger.error(f"Failed to list audio devices: {e}")
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/api/audio/bluetooth")
+async def list_bluetooth_devices():
+    """List Bluetooth audio devices only."""
+    try:
+        from . import audio_devices
+        devices = audio_devices.list_bluetooth_devices()
+        
+        return {
+            "ok": True,
+            "devices": [d.to_dict() for d in devices],
+            "count": len(devices),
+        }
+    except Exception as e:
+        logger.error(f"Failed to list Bluetooth devices: {e}")
+        return {"ok": False, "error": str(e)}
+
+
+from pydantic import BaseModel
+
+class DeviceSelection(BaseModel):
+    playback_device_id: int | None = None
+    capture_device_id: int | None = None
+
+@app.post("/api/audio/select")
+async def select_audio_devices(selection: DeviceSelection):
+    """Select preferred audio devices for playback and capture."""
+    try:
+        from . import audio_devices
+        
+        if selection.playback_device_id is not None:
+            audio_devices.DevicePreference.set_playback(selection.playback_device_id)
+        
+        if selection.capture_device_id is not None:
+            audio_devices.DevicePreference.set_capture(selection.capture_device_id)
+        
+        return {
+            "ok": True,
+            "playback_device": audio_devices.DevicePreference.get_playback(),
+            "capture_device": audio_devices.DevicePreference.get_capture(),
+        }
+    except Exception as e:
+        logger.error(f"Failed to select audio devices: {e}")
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/api/audio/test-playback")
+async def test_playback_device(device_id: int | None = None):
+    """Test playback device by playing a tone."""
+    try:
+        from . import audio_devices
+        success = audio_devices.test_playback_device(device_id)
+        return {"ok": success}
+    except Exception as e:
+        logger.error(f"Playback test failed: {e}")
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/api/audio/test-capture")
+async def test_capture_device(device_id: int | None = None):
+    """Test capture device by recording audio."""
+    try:
+        from . import audio_devices
+        result = audio_devices.test_capture_device(device_id)
+        return {"ok": result.get("success", False), **result}
+    except Exception as e:
+        logger.error(f"Capture test failed: {e}")
+        return {"ok": False, "error": str(e)}
+
+
+# =============================================================================
 # SOCKET.IO EVENT HANDLERS
 # =============================================================================
 @sio.event
